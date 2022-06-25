@@ -8,11 +8,13 @@ import glob
 import serial
 
 import Python_Coloring
+import CSharp_Coloring
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from pathlib import Path
+
 
 def serial_ports():
     """ Lists serial port names
@@ -51,14 +53,15 @@ def serial_ports():
 #
 #
 #
-class Signal(QObject):
 
+class Signal(QObject):
     # initializing a Signal which will take (string) as an input
     reading = pyqtSignal(str)
 
     # init Function for the Signal class
     def __init__(self):
         QObject.__init__(self)
+
 
 #
 #
@@ -69,6 +72,8 @@ class Signal(QObject):
 # Making text editor as A global variable (to solve the issue of being local to (self) in widget class)
 text = QTextEdit
 text2 = QTextEdit
+lastChar = "zz"
+
 
 #
 #
@@ -82,17 +87,17 @@ text2 = QTextEdit
 
 # this class is made to connect the QTab with the necessary layouts
 class text_widget(QWidget):
+
     def __init__(self):
         super().__init__()
         self.itUI()
+
     def itUI(self):
         global text
         text = QTextEdit()
-        Python_Coloring.PythonHighlighter(text)
         hbox = QHBoxLayout()
         hbox.addWidget(text)
         self.setLayout(hbox)
-
 
 
 #
@@ -100,7 +105,6 @@ class text_widget(QWidget):
 ############ end of Class ############
 #
 #
-
 
 
 #
@@ -119,11 +123,10 @@ class Widget(QWidget):
         self.initUI()
 
     def initUI(self):
-
         # This widget is responsible of making Tab in IDE which makes the Text editor looks nice
         tab = QTabWidget()
         tx = text_widget()
-        tab.addTab(tx, "Tab"+"1")
+        tab.addTab(tx, "Tab" + "1")
 
         # second editor in which the error messeges and succeeded connections will be shown
         global text2
@@ -133,7 +136,7 @@ class Widget(QWidget):
         self.treeview = QTreeView()
 
         # making a variable (path) and setting it to the root path (surely I can set it to whatever the root I want, not the default)
-        #path = QDir.rootPath()
+        # path = QDir.rootPath()
 
         path = QDir.currentPath()
 
@@ -185,9 +188,14 @@ class Widget(QWidget):
     # defining a new Slot (takes string) to save the text inside the first text editor
     @pyqtSlot(str)
     def Saving(s):
-        with open('main.py', 'w') as f:
-            TEXT = text.toPlainText()
-            f.write(TEXT)
+        if (lastChar == "py"):
+            with open('main.py', 'w') as f:
+                TEXT = text.toPlainText()
+                f.write(TEXT)
+        elif (lastChar == "cs"):
+            with open('C#program.cs', 'w') as f:
+                TEXT = text.toPlainText()
+                f.write(TEXT)
 
     # defining a new Slot (takes string) to set the string to the text editor
     @pyqtSlot(str)
@@ -199,12 +207,17 @@ class Widget(QWidget):
 
         nn = self.sender().model().filePath(index)
         nn = tuple([nn])
-
+        lastChar = nn[0][-2:]
         if nn[0]:
-            f = open(nn[0],'r')
+            f = open(nn[0], 'r')
             with f:
                 data = f.read()
                 text.setText(data)
+        if (lastChar == "py"):
+            Python_Coloring.PythonHighlighter(text)
+        elif (lastChar == 'cs'):
+            CSharp_Coloring.CSharpHighlighter(text)
+
 
 #
 #
@@ -221,12 +234,15 @@ def reading(s):
     b.reading.connect(Widget.Saving)
     b.reading.emit(s)
 
+
 # same as reading Function
 @pyqtSlot(str)
 def Openning(s):
     b = Signal()
     b.reading.connect(Widget.Open)
     b.reading.emit(s)
+
+
 #
 #
 #
@@ -237,6 +253,7 @@ def Openning(s):
 #
 #
 class UI(QMainWindow):
+
     def __init__(self):
         super().__init__()
         self.intUI()
@@ -260,6 +277,7 @@ class UI(QMainWindow):
         filemenu = menu.addMenu('File')
         Port = menu.addMenu('Port')
         Run = menu.addMenu('Run')
+        Language = menu.addMenu('Languages')
 
         # As any PC or laptop have many ports, so I need to list them to the User
         # so I made (Port_Action) to add the Ports got from (serial_ports()) function
@@ -275,8 +293,8 @@ class UI(QMainWindow):
         # adding the menu which I made to the original (Port menu)
         Port.addMenu(Port_Action)
 
-#        Port_Action.triggered.connect(self.Port)
-#        Port.addAction(Port_Action)
+        # Port_Action.triggered.connect(self.Port)
+        # Port.addAction(Port_Action)
 
         # Making and adding Run Actions
         RunAction = QAction("Run", self)
@@ -294,17 +312,22 @@ class UI(QMainWindow):
         Open_Action.setShortcut("Ctrl+O")
         Open_Action.triggered.connect(self.open)
 
+        # choose Language
+        Python_Action = QAction("Python", self)
+        Python_Action.triggered.connect(self.Python)
+        CSharp_Action = QAction("C#", self)
+        CSharp_Action.triggered.connect(self.CSharp)
+        Language.addAction(Python_Action)
+        Language.addAction(CSharp_Action)
 
         filemenu.addAction(Save_Action)
         filemenu.addAction(Close_Action)
         filemenu.addAction(Open_Action)
 
-
         # Seting the window Geometry
         self.setGeometry(200, 150, 600, 500)
         self.setWindowTitle('Anubis IDE')
         self.setWindowIcon(QtGui.QIcon('Anubis.png'))
-        
 
         widget = Widget()
 
@@ -315,16 +338,15 @@ class UI(QMainWindow):
     def Run(self):
         if self.port_flag == 0:
             mytext = text.toPlainText()
-        #
-        ##### Compiler Part
-        #
-#            ide.create_file(mytext)
-#            ide.upload_file(self.portNo)
+            #
+            ##### Compiler Part
+            #
+            # ide.create_file(mytext)
+            #  ide.upload_file(self.portNo)
             text2.append("Sorry, there is no attached compiler.")
 
         else:
             text2.append("Please Select Your Port Number First")
-
 
     # this function is made to get which port was selected by the user
     @QtCore.pyqtSlot()
@@ -333,22 +355,33 @@ class UI(QMainWindow):
         self.portNo = action.text()
         self.port_flag = 0
 
+    def CSharp(self):
+        global lastChar
+        lastChar = "cs"
+        CSharp_Coloring.CSharpHighlighter(text)
 
+    def Python(self):
+        global lastChar
+        lastChar = "py"
+        Python_Coloring.PythonHighlighter(text)
 
     # I made this function to save the code into a file
     def save(self):
         self.b.reading.emit("name")
 
-
     # I made this function to open a file and exhibits it to the user in a text editor
     def open(self):
-        file_name = QFileDialog.getOpenFileName(self,'Open File','/home')
-
+        file_name = QFileDialog.getOpenFileName(self, 'Open File', '/home')
+        lastChar = file_name[0][-2:]
         if file_name[0]:
-            f = open(file_name[0],'r')
+            f = open(file_name[0], 'r')
             with f:
                 data = f.read()
             self.Open_Signal.reading.emit(data)
+        if (lastChar == "py"):
+            Python_Coloring.PythonHighlighter(text)
+        elif (lastChar == "cs"):
+            CSharp_Coloring.CSharpHighlighter(text)
 
 
 #
@@ -359,6 +392,7 @@ class UI(QMainWindow):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
+
     ex = UI()
     # ex = Widget()
     sys.exit(app.exec_())
