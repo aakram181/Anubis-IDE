@@ -72,7 +72,7 @@ class Signal(QObject):
 # Making text editor as A global variable (to solve the issue of being local to (self) in widget class)
 text = QTextEdit
 text2 = QTextEdit
-lastChar = "zz"
+lastChar = "xx"
 
 
 #
@@ -215,7 +215,7 @@ class Widget(QWidget):
                 text.setText(data)
         if (lastChar == "py"):
             Python_Coloring.PythonHighlighter(text)
-        elif (lastChar == 'cs'):
+        elif (lastChar == "cs"):
             CSharp_Coloring.CSharpHighlighter(text)
 
 
@@ -292,9 +292,6 @@ class UI(QMainWindow):
 
         # adding the menu which I made to the original (Port menu)
         Port.addMenu(Port_Action)
-
-        # Port_Action.triggered.connect(self.Port)
-        # Port.addAction(Port_Action)
 
         # Making and adding Run Actions
         RunAction = QAction("Run", self)
